@@ -1,6 +1,5 @@
 from collections import defaultdict
-with open("input/day6.txt") as f:
-    _input = [line.strip() for line in f.readlines()]
+
 
 def get_starting_position(grid: list[list[str]]) -> tuple[int, int]:
     for y in range(len(grid)):
@@ -88,13 +87,21 @@ def compute_path(grid: list[list[str]], starting_position: tuple[int, int], hash
         # if going left (3) i need the smallest difference in x value where x2 is less than x1
         if is_vertical_move(direction_idx):
             if direction_idx == 0:  # up
+                if len([y2 for y2 in xy_of_inline_obstacles if y2 < y]) == 0:
+                    return -1, -1
                 closest_hash = min((abs(y - y2) for y2 in xy_of_inline_obstacles if y2 < y), default=y)
             else:  # down
+                if len([y2 for y2 in xy_of_inline_obstacles if y2 > y]) == 0:
+                    return -1, -1
                 closest_hash = min((abs(y2 - y) for y2 in xy_of_inline_obstacles if y2 > y), default=y)
         else:
             if direction_idx == 1:  # right
+                if len([x2 for x2 in xy_of_inline_obstacles if x2 > x]) == 0:
+                    return -1, -1
                 closest_hash = min((abs(x2 - x) for x2 in xy_of_inline_obstacles if x2 > x), default=x)
             else:  # left
+                if len([x2 for x2 in xy_of_inline_obstacles if x2 < x]) == 0:
+                    return -1, -1
                 closest_hash = min((abs(x - x2) for x2 in xy_of_inline_obstacles if x2 < x), default=x)
 
         match direction_idx:
@@ -108,7 +115,7 @@ def compute_path(grid: list[list[str]], starting_position: tuple[int, int], hash
                 nx, ny = x, y + closest_hash - 1
                 return nx, ny
             case 3:
-                nx, ny = x - closest_hash - 1, y
+                nx, ny = x - closest_hash + 1, y
                 return nx, ny
 
     def add_positions_between_to_set(x1, y1, x2, y2, visited_positions: set[tuple[int, int]]):
@@ -122,13 +129,17 @@ def compute_path(grid: list[list[str]], starting_position: tuple[int, int], hash
     visited_positions = set()
     x, y = starting_position
     next_position = get_next_position(x, y, direction_idx)
-    nx, ny = next_position
-    while grid[ny][nx] != "0":
-        add_positions_between_to_set(x, y, next_position[0], next_position[1], visited_positions)
-        x, y = next_position
-        direction_idx = (direction_idx + 1) % 4
-        next_position = get_next_position(x, y, direction_idx)
-
+    try:
+        while True:
+            add_positions_between_to_set(x, y, next_position[0], next_position[1], visited_positions)
+            x, y = next_position
+            direction_idx = (direction_idx + 1) % 4
+            next_position = get_next_position(x, y, direction_idx)
+            if next_position == (-1, -1):
+                break
+    except KeyboardInterrupt as e:
+        print("Interrupted")
+        
     return len(visited_positions)
 
 
@@ -142,17 +153,16 @@ def compute_path(grid: list[list[str]], starting_position: tuple[int, int], hash
 #         grid.append(list(line))
 #     return grid
 
+def part_1(grid: list[list[str]]) -> int:
+    all_tag_locations = find_all_hashtags(grid)
+    starting_position = get_starting_position(grid)
+    unique_positions = compute_path(grid=grid, starting_position=starting_position, hashtag_coordinates=all_tag_locations)
+    return unique_positions
 
 
 
+if __name__ == "__main__":
+    with open("input/day6.txt") as f:
+        _input = [line.strip() for line in f.readlines()]
 
-
-# Part 1
-padded_grid = pad_grid(_input)
-all_tag_locations = find_all_hashtags(padded_grid)
-starting_position = get_starting_position(padded_grid)
-unique_positions = compute_path(grid=padded_grid, starting_position=starting_position, hashtag_coordinates=all_tag_locations)
-
-
-unique_steps = walk_grid(padded_grid, starting_position)
-print(unique_steps)
+    print(part_1(_input))  # 6368
